@@ -297,7 +297,7 @@ def delete_order(t : Transact):
 @app.put("/market/close")
 def close_order(t : Transact):
     logging.error(t.name)
-    # Make the API call to mark as sold (hide order) and record transaction.
+    # Make the API call to mark as sold\bought and record transaction.
     order_id, order_plat, order_quant = get_order_data(t)
 
     time.sleep(0.33)
@@ -310,13 +310,26 @@ def close_order(t : Transact):
         updateListing(order_id, t.price, order_quant, True, t.name, t.transaction_type)
         time.sleep(0.33)
 
-    # Close the order via v2 API
-    response = warframeApi.post(f"{WFM_API}/order/{order_id}/close", json={})
+    # Close the order via v2 API;
+    close_qty = t.number if t.number and t.number > 0 else 1
+    payload = {"quantity": int(close_qty)}
+    response = warframeApi.post(f"{WFM_API}/order/{order_id}/close", json=payload)
+    customLogger.writeTo(
+        "wfmAPICalls.log",
+        f"POST:{WFM_API}/order/{order_id}/close\tResponse:{response.status_code}\tBody:{response.text}"
+    )
+    if response.status_code != 200:
+        fallback = warframeApi.patch(f"{WFM_API}/order/{order_id}/close", json=payload)
+        customLogger.writeTo(
+            "wfmAPICalls.log",
+            f"PATCH:{WFM_API}/order/{order_id}/close\tResponse:{fallback.status_code}\tBody:{fallback.text}"
+        )
+        response = fallback
     if response.status_code == 200:
         return {"message": "Order closed successfully"}
     raise HTTPException(
         status_code=400,
-        detail=f'Something went wrong accessing wf.market api.',
+        detail=f'Something went wrong accessing wf.market api. Response: {response.text}',
     )
 
 
