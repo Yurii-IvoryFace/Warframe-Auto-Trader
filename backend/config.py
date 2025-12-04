@@ -7,6 +7,7 @@ DEFAULT_CONFIG = {
     "wfm_jwt_token": "",
     "inGameName": "",
     "platform": "pc",
+    "crossplay": True,
     "webhookLink": "",
     "runningWarframeScreenDetect": False,
     "runningLiveScraper": False,
@@ -44,10 +45,12 @@ def setConfigStatus(key, value):
 
 pb_token = configData["pushbutton_token"]
 pushbutton_device_iden = configData["pushbutton_device_iden"]
-jwt_token = configData["wfm_jwt_token"]
-jwt_token = "JWT " + jwt_token.split(" ")[-1]
+jwt_token_raw = configData["wfm_jwt_token"]
+jwt_token_raw = jwt_token_raw.split(" ")[-1] if jwt_token_raw else ""
+jwt_token = f"Bearer {jwt_token_raw}" if jwt_token_raw else ""
 inGameName = configData['inGameName']
 platform = configData['platform'].lower()
+crossplay = configData.get("crossplay", True)
 webhookLink = configData["webhookLink"]
 # Read JSON file
 with open('settings.json') as settings:

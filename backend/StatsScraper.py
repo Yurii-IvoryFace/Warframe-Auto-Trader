@@ -16,12 +16,12 @@ customLogger.clearFile("relicsAPICalls.log")
 customLogger.writeTo("relicsApiCalls.log", "Started Stats Scraper")
 
 
-allItemsLink = "https://api.warframe.market/v1/items"
+allItemsLink = "https://api.warframe.market/v2/items"
 r = requests.get(allItemsLink)
 customLogger.writeTo("wfmAPICalls.log", f"GET:{allItemsLink}\tResponse:{r.status_code}")
-itemList = r.json()["payload"]["items"]
-itemNameList = [x["url_name"] for x in itemList if "relic" not in x["url_name"]]
-urlLookup = {x["item_name"] : x["url_name"] for x in itemList}
+itemList = r.json()["data"]
+itemNameList = [x["slug"] for x in itemList if "relic" not in x["slug"]]
+urlLookup = {x["i18n"]["en"]["name"] : x["slug"] for x in itemList if x.get("i18n")}
 
 csvFileName = "allItemData.csv"
 
@@ -115,7 +115,7 @@ df = df.sort_values(by="name")
 itemListDF = pd.DataFrame.from_dict(itemList)
 #itemListDF
 #df = df.drop("Unnamed: 0", axis=1)
-df["item_id"] = df.apply(lambda row : itemListDF[itemListDF["url_name"] == row["name"]].reset_index().loc[0, "id"], axis=1)
+df["item_id"] = df.apply(lambda row : itemListDF[itemListDF["slug"] == row["name"]].reset_index().loc[0, "id"], axis=1)
 df["order_type"] = df.get("order_type").str.lower()
 df.to_csv("allItemData.csv", index=False)
 

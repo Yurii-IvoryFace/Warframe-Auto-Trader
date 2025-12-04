@@ -168,20 +168,23 @@ def deleteAllOrders(settings):
             deleteOrder(order["id"])
 
 def getFilteredDF(item):
-    r = warframeApi.get(f"https://api.warframe.market/v1/items/{item}/orders")
+    r = warframeApi.get(f"{WFM_API}/orders/item/{item}")
     customLogger.writeTo(
         "wfmAPICalls.log",
-        f"GET:https://api.warframe.market/v1/items/{item}/orders\tResponse:{r.status_code}"
+        f"GET:{WFM_API}/orders/item/{item}\tResponse:{r.status_code}"
     )
     logging.debug(r)
     try:
         data = r.json()
     except:
         return pd.DataFrame()
-    data = data["payload"]["orders"]
+    data = data.get("data", [])
     df = pd.DataFrame.from_dict(data)
+    if df.empty:
+        return df
     df["status"] = df.apply(lambda row : row["user"]["status"], axis=1)
-    df["username"] = df.apply(lambda row : row["user"]["ingame_name"], axis=1)
+    df["username"] = df.apply(lambda row : row["user"]["ingameName"], axis=1)
+    df = df.rename(columns={"type": "order_type", "rank": "mod_rank"})
     df = df[df.get("status") == "ingame"]
     
     if "mod_rank" in df.columns:
@@ -259,14 +262,27 @@ def knapsack(items, max_weight):
 
     return dp[n][max_weight], selected_items, unselected_items
 
-def get_new_buy_data(myBuyOrdersDF, response, itemStats):
-    newBuyOrderDF = pd.DataFrame.from_dict(response["order"])
-    if newBuyOrderDF.shape[0] != 0:
-        newBuyOrderDF["url_name"] = newBuyOrderDF["item"]["url_name"]
-        newBuyOrderDF = newBuyOrderDF.iloc[0].to_frame().T
+def _normalize_order_row(order: dict):
+    item_slug = None
+    if isinstance(order.get("item"), dict):
+        item_slug = order["item"].get("url_name") or order["item"].get("slug")
+        if not item_slug and order["item"].get("id"):
+            item_slug = item_id_to_slug(order["item"]["id"])
+    if not item_slug and order.get("itemId"):
+        item_slug = item_id_to_slug(order["itemId"])
+    order = dict(order)
+    order.setdefault("item", {})
+    order["item"]["url_name"] = item_slug
+    order["url_name"] = item_slug
+    return order
+
+
+def get_new_buy_data(myBuyOrdersDF, order_data, itemStats):
+    order_row = _normalize_order_row(order_data)
+    newBuyOrderDF = pd.DataFrame([order_row])
+    if not newBuyOrderDF.empty:
         newBuyOrderDF["potential_profit"] = itemStats['closedAvg'] - newBuyOrderDF["platinum"]
-            
-    myBuyOrdersDF = pd.concat([newBuyOrderDF,myBuyOrdersDF], ignore_index=True, axis=0)
+    myBuyOrdersDF = pd.concat([newBuyOrderDF, myBuyOrdersDF], ignore_index=True, axis=0)
     return myBuyOrdersDF
 
 
@@ -361,8 +377,13 @@ def compareLiveOrdersWhenBuying(item, liveOrderDF, itemStats, currentOrders, myB
                 response = postOrder(itemID, orderType, str(postPrice), str(1), True, modRank, item)
                 if response.status_code != 200:
                     return
-                response = response.json()["payload"]
-                myBuyOrdersDF = get_new_buy_data(myBuyOrdersDF, response, itemStats)
+                resp_json = response.json()
+                order_payload = resp_json.get("data") or resp_json.get("payload")
+                if isinstance(order_payload, dict) and "order" in order_payload:
+                    order_payload = order_payload["order"]
+                if not order_payload:
+                    return
+                myBuyOrdersDF = get_new_buy_data(myBuyOrdersDF, order_payload, itemStats)
                 logging.debug(f"AUTOMATICALLY POSTED VISIBLE {orderType.upper()} ORDER FOR {postPrice}")
                 return myBuyOrdersDF
             else:
@@ -518,16 +539,14 @@ try:
                 continue
 
             if item not in list(buySellOverlap.index):
-                r = warframeApi.get(f"https://api.warframe.market/v1/items/{item}")
-                customLogger.writeTo("wfmAPICalls.log", f"GET:https://api.warframe.market/v1/items/{item}\tResponse:{r.status_code}")
+                r = warframeApi.get(f"{WFM_API}/items/{item}")
+                customLogger.writeTo("wfmAPICalls.log", f"GET:{WFM_API}/items/{item}\tResponse:{r.status_code}")
                 if r.status_code != 200:
                     continue
 
-                itemID = r.json()["payload"]["item"]['id']
-                try:
-                    modRank = r.json()["payload"]["item"]["items_in_set"][0]['mod_max_rank']
-                except KeyError:
-                    modRank = None
+                item_payload = r.json().get("data", {})
+                itemID = item_payload.get("id")
+                modRank = item_payload.get("maxRank")
                 compareLiveOrdersWhenSelling(item, liveOrderDF, None, currentOrders, itemID, modRank, settings)
 
                 continue

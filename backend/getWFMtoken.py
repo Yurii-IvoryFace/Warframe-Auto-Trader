@@ -1,8 +1,10 @@
 import json
+
 import requests
+
 import config
 
-WFM_API = "https://api.warframe.market/v1"
+WFM_API = "https://api.warframe.market/v2"
 
 def login(
     user_email: str, user_password: str, platform: str = "pc", language: str = "en"
@@ -13,17 +15,21 @@ def login(
     or returns (None, None) if unsuccessful.
     """
     headers = {
-        "Content-Type": "application/json; utf-8",
+        "Content-Type": "application/json",
         "Accept": "application/json",
-        "Authorization": "JWT",
-        "platform": platform,
-        "language": language,
+        "Platform": platform,
+        "Language": language,
+        "Crossplay": str(config.crossplay).lower(),
     }
     content = {"email": user_email, "password": user_password, "auth_type": "header"}
-    response = requests.post(f"{WFM_API}/auth/signin", data=json.dumps(content), headers=headers)
+    response = requests.post(f"{WFM_API}/auth/signin", json=content, headers=headers)
     if response.status_code != 200:
         return None, None
-    return (response.json()["payload"]["user"]["ingame_name"], response.headers["Authorization"])
+    payload = response.json().get("data") or response.json().get("payload", {})
+    user = payload.get("user", {})
+    token_raw = response.headers.get("Authorization", "")
+    bearer_token = f"Bearer {token_raw.split(' ')[-1]}" if token_raw else ""
+    return (user.get("ingameName") or user.get("ingame_name"), bearer_token)
 
 # UNCOMMENT LINE BELOW IF YOU'RE ON PC:
 # MAKE SURE TO FILL IN <YOUR_INFO> BLANKS WITH YOUR INFO

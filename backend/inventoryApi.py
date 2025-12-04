@@ -150,10 +150,10 @@ async def root():
 async def get_a_list_of_names_of_all_tradable_items():
     global itemNameList
     if len(itemNameList) == 0:
-        allItemsLink = "https://api.warframe.market/v1/items"
+        allItemsLink = "https://api.warframe.market/v2/items"
         r = requests.get(allItemsLink)
-        itemList = r.json()["payload"]["items"]
-        itemNameList = sorted([x["url_name"] for x in itemList])
+        itemList = r.json()["data"]
+        itemNameList = sorted([x["slug"] for x in itemList])
     return {"item_names" : itemNameList}
 
 @app.get("/items")
@@ -253,32 +253,14 @@ async def sellItem(item : Item):
         con.close()
         return {"Executed" : False, "Reason": "Item not in database."}
 
-def get_order_data(t : Transact):
-    url = f"https://api.warframe.market/v1/profile/{config.inGameName}/orders"
-
-    headers = {
-        "Content-Type": "application/json; utf-8",
-        "Accept": "application/json",
-        "auth_type": "header",
-        "platform": config.platform,
-        "language": "en",
-        "Authorization" : jwt_token
-    }
-
-    response = requests.get(url, headers=headers)
-
-    if response.status_code == 200:
-        data = response.json()
-        orders = data["payload"][f"{t.transaction_type}_orders"]
-
-        for order in orders:
-            if order["item"]["url_name"] == t.name:
-                return order["id"], order['platinum'], order["quantity"]
-
-        # If no matching order found
-        return None, None, None
-
-    # If API call failed
+def get_order_data(t: Transact):
+    data = getOrders()
+    orders = data.get(f"{t.transaction_type}_orders", [])
+    for order in orders:
+        item = order.get("item", {})
+        item_name = item.get("url_name") or item.get("id")
+        if item_name == t.name:
+            return order.get("id"), order.get("platinum"), order.get("quantity")
     return None, None, None
 
 @app.put("/market/delete")
@@ -289,7 +271,7 @@ def delete_order(t : Transact):
     con.close()
     if numLeft != 1:
         return {"message": "Not deleting order since you have may of these left"}
-    
+
     # Make the DELETE API call
     order_id, order_plat, order_quant = get_order_data(t)
 
@@ -302,18 +284,7 @@ def delete_order(t : Transact):
         )
 
     
-    delete_url = f"https://api.warframe.market/v1/profile/orders/{order_id}"
-    
-    headers = {
-        "Content-Type": "application/json; utf-8",
-        "Accept": "application/json",
-        "auth_type": "header",
-        "platform": config.platform,
-        "language": "en",
-        "Authorization": jwt_token,
-    }
-    
-    response = requests.delete(delete_url, headers=headers)
+    response = deleteOrder(order_id)
     
     if response.status_code == 200:
         return {"message": "Order deleted successfully"}
@@ -326,7 +297,7 @@ def delete_order(t : Transact):
 @app.put("/market/close")
 def close_order(t : Transact):
     logging.error(t.name)
-    # Make the DELETE API call
+    # Make the API call to mark as sold (hide order) and record transaction.
     order_id, order_plat, order_quant = get_order_data(t)
 
     time.sleep(0.33)
@@ -339,25 +310,11 @@ def close_order(t : Transact):
         updateListing(order_id, t.price, order_quant, True, t.name, t.transaction_type)
         time.sleep(0.33)
 
-
-    close_url = f"https://api.warframe.market/v1/profile/orders/close/{order_id}"
-    
-    headers = {
-            "Content-Type": "application/json; utf-8",
-            "Accept": "application/json",
-            "auth_type": "header",
-            "platform": config.platform,
-            "language": "en",
-            "Authorization": config.jwt_token,
-            'User-Agent': 'Warframe Algo Trader/1.2.8',
-        }
-    
-    response = requests.put(close_url, headers=headers, json={})
-    
+    # Close the order via v2 API
+    response = warframeApi.post(f"{WFM_API}/order/{order_id}/close", json={})
     if response.status_code == 200:
         return {"message": "Order closed successfully"}
-    else:
-        raise HTTPException(
+    raise HTTPException(
         status_code=400,
         detail=f'Something went wrong accessing wf.market api.',
     )
