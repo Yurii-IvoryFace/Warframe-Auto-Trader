@@ -1,18 +1,41 @@
 import json
-conf = open("config.json")
-configData = json.load(conf)
-conf.close()
+import os
+
+DEFAULT_CONFIG = {
+    "pushbutton_token": "",
+    "pushbutton_device_iden": "",
+    "wfm_jwt_token": "",
+    "inGameName": "",
+    "platform": "pc",
+    "webhookLink": "",
+    "runningWarframeScreenDetect": False,
+    "runningLiveScraper": False,
+    "runningStatisticsScraper": False,
+}
+
+
+def _load_or_init_config():
+    """
+    Ensure config.json exists; if missing, create a placeholder so the app can start.
+    """
+    if not os.path.exists("config.json"):
+        with open("config.json", "w") as f:
+            f.write(json.dumps(DEFAULT_CONFIG, indent=4))
+        return DEFAULT_CONFIG.copy()
+    with open("config.json") as f:
+        return json.load(f)
+
+
+configData = _load_or_init_config()
 
 def getConfigStatus(key):
-    f = open("config.json")
-    configData = json.load(f)
-    f.close()
+    with open("config.json") as f:
+        configData = json.load(f)
     return configData[key]
 
 def setConfigStatus(key, value):
-    f = open("config.json")
-    configData = json.load(f)
-    f.close()
+    with open("config.json") as f:
+        configData = json.load(f)
     configData[key] = value
     with open("config.json", "w") as outfile:
         outfile.write(json.dumps(configData, indent=4))

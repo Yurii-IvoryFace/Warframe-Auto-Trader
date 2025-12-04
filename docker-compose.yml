@@ -4,11 +4,11 @@ services:
   python-app:
     image: yelbuzz/warframe-algo-trader-python-app
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: warframe-algo-trader-python-app
     volumes:
-      - .:/app
+      - ./backend:/app
       - $APPDATA/../Local/Warframe:/appdata_warframe  # Use the environment variable for the volume mount
     ports:
       - 8000:8000

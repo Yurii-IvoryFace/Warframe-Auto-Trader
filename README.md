@@ -20,6 +20,12 @@ Additionally, this [video](https://youtu.be/5g3vUm-XlyE) contains a summary of h
 
 <img src=https://github.com/akmayer/Warframe-Algo-Trader/assets/11152158/ef79875f-bfbb-435a-a248-e78d738ef059 width="495" height="270">
 
+## Project Structure
+
+- `backend/` — all Python code (FastAPI app, scrapers, helper scripts, Dockerfile, requirements, assets).
+- `my-app/` — Next.js frontend (UI dashboard).
+- Root — shared docs/config like `docker-compose.yml`, `startAll.bat`.
+
 ## Related Ongoing Projects:
 
 This is not necessarily a recommendation or endorsement of these projects, but are something interesting you may want to check out related to this one.
@@ -47,7 +53,7 @@ If you would like a visual guide for reference, I have posted that here: https:/
 
 #### A. Steps:
 
-1. Initialize the configuration files by running `docker run --rm -v ".:/app" -w /app python:3.11-slim-bookworm python3 init.py` on Windows or `docker run --rm -v "$(pwd):/app" --user $(id -u):$(id -u) -w /app python:3.11-slim-bookworm python3 init.py` if you're on linux. If this fails on windows because you are not in the docker-users group, see [this](https://stackoverflow.com/questions/61530874/docker-how-do-i-add-myself-to-the-docker-users-group-on-windows) stack overflow post.
+1. Initialize the configuration files by running `docker run --rm -v "./backend:/app" -w /app python:3.11-slim-bookworm python3 init.py` on Windows or `docker run --rm -v "$(pwd)/backend:/app" --user $(id -u):$(id -u) -w /app python:3.11-slim-bookworm python3 init.py` if you're on linux. If this fails on windows because you are not in the docker-users group, see [this](https://stackoverflow.com/questions/61530874/docker-how-do-i-add-myself-to-the-docker-users-group-on-windows) stack overflow post.
 2. Continue straight to [Setup](https://github.com/akmayer/Warframe-Algo-Trader/tree/main#setup)
 
 #### Method B. From source:
@@ -66,11 +72,11 @@ If you would like a visual guide for reference, I have posted that here: https:/
 > Note: The following steps are executed through the command line for installation from source.
 
 1. `cd` to the project directory, which will be `Warframe-Algo-Trader` if you downloaded with a git clone, and `Warframe-Algo-Trader-main` if you downloaded from a zip file.
-2. Run `pip install -r requirements.txt`.
-3. Run `pip install uvicorn`.
-4. `cd my-app` then run `npm install` to download the necessary packages. If this fails, first install npm then run it.
-5. `cd ../` to return to the top level of the project.
-6. Run `python init.py` to initialize the tables and config.json file which will store credentials to access various api's.
+2. `cd backend` then run `pip install -r requirements.txt`.
+3. Run `pip install uvicorn` (still inside `backend/`).
+4. `cd ../my-app` then run `npm install` to download the necessary packages. If this fails, first install npm then run it.
+5. `cd ../backend` and run `python init.py` to initialize the tables and config.json file which will store credentials to access various api's.
+6. `cd ..` to return to the top level of the project.
 
 ### Setup
 
@@ -123,7 +129,7 @@ Running `docker compose up --build` will start two containers, one for the pytho
 
 If you are on windows, you can navigate to the top level of the project and run `startAll.bat`. The application is a locally hosted website at 127.0.0.1:3000, which you can open in a browser. If you want to see the api, that's hosted at 127.0.0.1:8000.
 
-If you are not on windows, then in the top level, run `uvicorn inventoryApi:app --reload` to run the api. In a new terminal window, navigate into the `my-app` directory then run `npm run dev` to run the website. The addresses will be the same.
+If you are not on windows, then run `cd backend && uvicorn inventoryApi:app --reload` to start the api. In a new terminal window, navigate into the `my-app` directory then run `npm run dev` to run the website. The addresses will be the same.
 
 **Always keep in mind that if someone messages you with the warframe.market copy-paste message in game, you are bound by the wf.m TOS to go through with it. They may message you with a slightly worse price (for you) than is currently listed, possibly because the program detected that you could raise or lower your price, but the person did not refresh their page seeing the new price. According to 1.5 on the warframe.market TOS, you must honor the price they came to you with.** However, this program will always place your prices close to the current best buy and sell prices, so if someone approaches you with a number absurdly different from one of those, it may be worth disputing.
 

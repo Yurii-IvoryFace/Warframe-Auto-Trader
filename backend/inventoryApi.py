@@ -40,6 +40,35 @@ app.add_middleware(
 
 itemNameList = []
 
+def ensure_db():
+    """Create required sqlite tables if they don't exist."""
+    con = sqlite3.connect("inventory.db")
+    cur = con.cursor()
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS inventory (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            purchasePrice REAL,
+            listedPrice REAL,
+            number INTEGER
+        ) STRICT
+        """
+    )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            datetime TEXT,
+            transactionType TEXT,
+            price INTEGER
+        ) STRICT
+        """
+    )
+    con.commit()
+    con.close()
+
 class Item(BaseModel):
     name:str
     purchasePrice:float | None = None
@@ -99,6 +128,7 @@ async def startup_event():
     config.setConfigStatus("runningWarframeScreenDetect", False)
     config.setConfigStatus("runningLiveScraper", False)
     config.setConfigStatus("runningStatisticsScraper", False)
+    ensure_db()
     # startup tasks
 
 @app.get("/testlog")
@@ -128,6 +158,7 @@ async def get_a_list_of_names_of_all_tradable_items():
 
 @app.get("/items")
 async def getItems():
+    ensure_db()
     jsonArray = []
     con = sqlite3.connect("inventory.db")
     con.row_factory = sqlite3.Row   #   add this row
@@ -140,6 +171,7 @@ async def getItems():
 
 @app.get("/items/sum")
 async def sumItems():
+    ensure_db()
     con = sqlite3.connect("inventory.db")
     cur = con.cursor()
     cur.execute("SELECT SUM(number * purchasePrice) AS total_purchase_price, SUM(number * listedPrice) AS total_listed_price FROM inventory")
