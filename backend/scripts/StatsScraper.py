@@ -1,6 +1,5 @@
 import json, requests
 from datetime import datetime, timedelta
-from tqdm import tqdm
 import pandas as pd
 import os
 import numpy as np
@@ -8,13 +7,15 @@ import time
 import config
 import logging
 from itertools import chain
-import customLogger
+import services.custom_logger as customLogger
+from services.legacy.AccessingWFMarket import WFM_API
 
 logging.basicConfig(format='{levelname:7} {message}', style='{', level=logging.DEBUG)
 
 customLogger.clearFile("relicsAPICalls.log")
 customLogger.writeTo("relicsApiCalls.log", "Started Stats Scraper")
 
+os.makedirs(config.DATA_DIR, exist_ok=True)
 
 allItemsLink = "https://api.warframe.market/v2/items"
 r = requests.get(allItemsLink)
@@ -23,10 +24,10 @@ itemList = r.json()["data"]
 itemNameList = [x["slug"] for x in itemList if "relic" not in x["slug"]]
 urlLookup = {x["i18n"]["en"]["name"] : x["slug"] for x in itemList if x.get("i18n")}
 
-csvFileName = "allItemData.csv"
+csvFileName = config.DATA_DIR / "allItemData.csv"
 
 try:
-    os.rename(csvFileName, "allItemDataBackup.csv")
+    os.rename(csvFileName, config.DATA_DIR / "allItemDataBackup.csv")
 except FileNotFoundError:
     pass
 except FileExistsError:
@@ -65,7 +66,7 @@ df = pd.DataFrame()
 
 foundData = 0
 frames = []
-for dayStr in tqdm(lastManyDays):
+for dayStr in lastManyDays:
     if foundData >= 7:
         continue
     link = getDataLink(dayStr)
@@ -117,10 +118,10 @@ itemListDF = pd.DataFrame.from_dict(itemList)
 #df = df.drop("Unnamed: 0", axis=1)
 df["item_id"] = df.apply(lambda row : itemListDF[itemListDF["slug"] == row["name"]].reset_index().loc[0, "id"], axis=1)
 df["order_type"] = df.get("order_type").str.lower()
-df.to_csv("allItemData.csv", index=False)
+df.to_csv(csvFileName, index=False)
 
 try:
-    os.remove("allItemDataBackup.csv")
+    os.remove(config.DATA_DIR / "allItemDataBackup.csv")
 except FileNotFoundError:
     pass
 

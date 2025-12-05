@@ -2,6 +2,7 @@ import requests
 import time
 import config
 
+
 def send_push(title, message):
     headers = {
         'Access-Token': config.pb_token,
@@ -12,10 +13,10 @@ def send_push(title, message):
         'body': message,
         'title': title,
         'type': 'note',
-        'device_iden' : config.pushbutton_device_iden
+        'device_iden': config.pushbutton_device_iden
     }
-    
-    response = requests.post('https://api.pushbullet.com/v2/pushes', headers=headers, json=json_data)
+
+    requests.post('https://api.pushbullet.com/v2/pushes', headers=headers, json=json_data)
 
 
 if __name__ == "__main__" and '__file__' not in globals():

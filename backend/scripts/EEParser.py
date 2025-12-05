@@ -1,9 +1,9 @@
 import os
 import re
-import SelfTexting
+from services.utils import self_texting as SelfTexting
 import config
 from time import sleep
-import DiscordWebhook
+from services.utils import discord_webhook as DiscordWebhook
 
 import logging
 logging.basicConfig(format='{levelname:7} {message}', style='{', level=logging.DEBUG)

@@ -3,19 +3,20 @@ import sqlite3
 import json, requests, time
 from pprint import pprint
 from IPython.display import clear_output
-import sqlite3
-from AccessingWFMarket import *
-import SelfTexting
+from services.legacy.AccessingWFMarket import *
+from services.utils import self_texting as SelfTexting
 import config
 import numpy as np
 import logging
-import customLogger
+import services.custom_logger as customLogger
+from services.inventory_repo import ensure_db
 
 logging.basicConfig(format='{levelname:7} {message}', style='{', level=logging.DEBUG)
 
 customLogger.clearFile("wfmAPICalls.log")
 customLogger.clearFile("orderTracker.log")
 customLogger.writeTo("orderTracker.log", "Started Live Scraper")
+ensure_db()
 
 
 
@@ -37,11 +38,12 @@ def getWeekIncrease(df, row):
 
 def getBuySellOverlap(settings):
 
+    ensure_db()
     try:
-        df = pd.read_csv("allItemDataBackup.csv")
+        df = pd.read_csv(config.DATA_DIR / "allItemDataBackup.csv")
     except FileNotFoundError:
         try:
-            df = pd.read_csv("allItemData.csv")
+            df = pd.read_csv(config.DATA_DIR / "allItemData.csv")
         except FileNotFoundError:
             config.setConfigStatus("runningLiveScraper", False)
             customLogger.writeTo("orderTracker.log", f"LiveScraper Stopped. No file called allItemData.csv or allItemDataBackup.csv found. Let the Stats Scraper run to completion")
@@ -54,8 +56,9 @@ def getBuySellOverlap(settings):
     averaged_df = averaged_df.groupby(['name', 'order_type']).mean().reset_index()
 
     # Create your connection.
-    con = sqlite3.connect('inventory.db')
+    con = sqlite3.connect(str(config.DATA_DIR / 'inventory.db'))
 
+    ensure_db()
     inventory = pd.read_sql_query("SELECT * FROM inventory", con)
     con.close()
     inventory = inventory[inventory.get("number") > 0]
@@ -134,7 +137,8 @@ buySellOverlap = getBuySellOverlap(settings)
 
 
 def updateDBPrice(itemName, listedPrice):
-    con = sqlite3.connect("inventory.db")
+    ensure_db()
+    con = sqlite3.connect(str(config.DATA_DIR / "inventory.db"))
     cur = con.cursor()
     purchasePrice = cur.execute(f"SELECT SUM(purchasePrice) FROM inventory WHERE name='{itemName}'").fetchone()[0]
     number = cur.execute(f"SELECT SUM(number) FROM inventory WHERE name='{itemName}'").fetchone()[0]
@@ -144,9 +148,9 @@ def updateDBPrice(itemName, listedPrice):
 
 def getItemId(url_name):
     try:
-        df = pd.read_csv("allItemDataBackup.csv")
+        df = pd.read_csv(config.DATA_DIR / "allItemDataBackup.csv")
     except FileNotFoundError:
-        df = pd.read_csv("allItemData.csv")
+        df = pd.read_csv(config.DATA_DIR / "allItemData.csv")
     df = df.set_index("name")
     return df.loc[url_name, "item_id"].iloc[0]
 
@@ -157,6 +161,7 @@ def getItemRank(buySellOverlap, url_name):
         return buySellOverlap.loc[url_name, "mod_rank"]
 
 def deleteAllOrders(settings):
+    ensure_db()
     currentOrders = getOrders()
     for order in currentOrders["sell_orders"]:
         if config.getConfigStatus("runningLiveScraper") and not ignoreItems(order["item"]["url_name"], settings):
@@ -288,8 +293,9 @@ def get_new_buy_data(myBuyOrdersDF, order_data, itemStats):
 
 
 def compareLiveOrdersWhenBuying(item, liveOrderDF, itemStats, currentOrders, myBuyOrdersDF, itemID, modRank, settings):
-    con = sqlite3.connect('inventory.db')
+    con = sqlite3.connect(str(config.DATA_DIR / 'inventory.db'))
 
+    ensure_db()
     inventory = pd.read_sql_query("SELECT * FROM inventory", con)
     con.close()
     inventory = inventory[inventory.get("number") > 0]
@@ -397,8 +403,9 @@ def compareLiveOrdersWhenBuying(item, liveOrderDF, itemStats, currentOrders, myB
 
 
 def compareLiveOrdersWhenSelling(item, liveOrderDF, itemStats, currentOrders, itemID, modRank, settings):
-    con = sqlite3.connect('inventory.db')
+    con = sqlite3.connect(str(config.DATA_DIR / 'inventory.db'))
 
+    ensure_db()
     inventory = pd.read_sql_query("SELECT * FROM inventory", con)
     con.close()
     inventory = inventory[inventory.get("number") > 0]
@@ -479,8 +486,9 @@ try:
     while config.getConfigStatus("runningLiveScraper"):
         settings = readSettings()
 
-        con = sqlite3.connect('inventory.db')
+        con = sqlite3.connect(str(config.DATA_DIR / 'inventory.db'))
 
+        ensure_db()
         inventory = pd.read_sql_query("SELECT * FROM inventory", con)
         con.close()
         inventory = inventory[inventory.get("number") > 0]
@@ -526,8 +534,8 @@ try:
             if not config.getConfigStatus("runningLiveScraper"):
                 break
             
-            con = sqlite3.connect('inventory.db')
-
+            ensure_db()
+            con = sqlite3.connect(str(config.DATA_DIR / 'inventory.db'))
             inventory = pd.read_sql_query("SELECT * FROM inventory", con)
             con.close()
             inventory = inventory[inventory.get("number") > 0]
@@ -570,7 +578,7 @@ try:
 
 except OSError as err:
     config.setConfigStatus("runningLiveScraper", False)
-    logging.debug("OS error:", err)
+    logging.debug("OS error: %s", err)
 except Exception as err:
     config.setConfigStatus("runningLiveScraper", False)
     logging.debug(f"Unexpected {err=}, {type(err)=}")

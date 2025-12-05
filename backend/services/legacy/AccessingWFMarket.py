@@ -7,7 +7,7 @@ import pandas as pd
 import requests
 
 import config
-import customLogger
+import services.custom_logger as customLogger
 
 class WarframeApi:
     def __init__(self):
@@ -116,9 +116,9 @@ def _get_item_lookup() -> Dict[str, str]:
     global _ITEM_LOOKUP
     if _ITEM_LOOKUP is None:
         try:
-            df = pd.read_csv("allItemDataBackup.csv")
+            df = pd.read_csv(config.DATA_DIR / "allItemDataBackup.csv")
         except FileNotFoundError:
-            df = pd.read_csv("allItemData.csv")
+            df = pd.read_csv(config.DATA_DIR / "allItemData.csv")
         _ITEM_LOOKUP = df[["item_id", "name"]].drop_duplicates().set_index("item_id")["name"].to_dict()
     return _ITEM_LOOKUP
 

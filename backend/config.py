@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 
 DEFAULT_CONFIG = {
     "pushbutton_token": "",
@@ -52,6 +53,9 @@ inGameName = configData['inGameName']
 platform = configData['platform'].lower()
 crossplay = configData.get("crossplay", True)
 webhookLink = configData["webhookLink"]
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR  # keep DB/CSV in backend root for compatibility
+ASSETS_DIR = BASE_DIR / "assets" / "icons"
 # Read JSON file
 with open('settings.json') as settings:
     data = json.load(settings)

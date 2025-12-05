@@ -4,7 +4,7 @@ import pyautogui
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-import SelfTexting
+from services.utils import self_texting as SelfTexting
 import config
 import logging
 import os
@@ -77,15 +77,16 @@ textInterval = 20
 timeAtLastText = time.time() - textInterval
 confidence = 0.9
 
-windowsPost = preProcess("WindowsLogo.png")
-arrowPost = preProcess("WhisperArrow.png")
+windowsPost = preProcess(str(config.ASSETS_DIR / "WindowsLogo.png"))
+arrowPost = preProcess(str(config.ASSETS_DIR / "WhisperArrow.png"))
 
 while config.getConfigStatus("runningWarframeScreenDetect"):
     try:
-        if (pyautogui.locateOnScreen('ChatMinimize.png', confidence=confidence)) != None:
-            searchIconLoc = pyautogui.locateCenterOnScreen('ChatMinimize.png', confidence=confidence)
-            whisperBar = pyautogui.screenshot("whispers.png", region=(searchIconLoc.x - 1080,searchIconLoc.y - 27, 1053, 54))
-            whisperPost = preProcess("whispers.png")
+        if (pyautogui.locateOnScreen(str(config.ASSETS_DIR / 'ChatMinimize.png'), confidence=confidence)) != None:
+            searchIconLoc = pyautogui.locateCenterOnScreen(str(config.ASSETS_DIR / 'ChatMinimize.png'), confidence=confidence)
+            whisper_path = config.ASSETS_DIR / "whispers.png"
+            whisperBar = pyautogui.screenshot(str(whisper_path), region=(searchIconLoc.x - 1080,searchIconLoc.y - 27, 1053, 54))
+            whisperPost = preProcess(str(whisper_path))
             removeTemplate(whisperPost, windowsPost)
             removeTemplate(whisperPost, arrowPost)
 
@@ -100,7 +101,7 @@ while config.getConfigStatus("runningWarframeScreenDetect"):
             alphaCount = countAlphanumeric(s)
 
             
-            if alphaCount >= 4 and (time.time() - timeAtLastText) > textInterval and ((pyautogui.locateOnScreen('ChatMinimize.png', confidence=confidence)) != None):
+            if alphaCount >= 4 and (time.time() - timeAtLastText) > textInterval and ((pyautogui.locateOnScreen(str(config.ASSETS_DIR / 'ChatMinimize.png'), confidence=confidence)) != None):
                 timeAtLastText = time.time()
                 print(f"Trade from {s}")
                 SelfTexting.send_push("WFTrade", f"Whisper(s) from {s}")

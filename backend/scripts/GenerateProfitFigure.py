@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 import sys
+import config
 
 ignoreLokiPrime = False
 
@@ -13,7 +14,7 @@ else:
     
 def getValueOfAssets(dt, ignoredSet):
     # Connect to the SQLite database
-    conn = sqlite3.connect('inventory.db')
+    conn = sqlite3.connect(str(config.DATA_DIR / 'inventory.db'))
     cursor = conn.cursor()
     
     # Retrieve distinct names from the transactions table
@@ -45,7 +46,7 @@ def getValueOfAssets(dt, ignoredSet):
 
 def getValueOfAssets2(dt, ignoredSet):
     # Connect to the SQLite database
-    conn = sqlite3.connect('inventory.db')
+    conn = sqlite3.connect(str(config.DATA_DIR / 'inventory.db'))
     cursor = conn.cursor()
 
     # Retrieve distinct names, net count, and average price in a single query
@@ -88,7 +89,7 @@ def genLabels(dateTimeList):
     return labels
 
 def getInventoryValueOverTime(startDate, endDate):
-    conn = sqlite3.connect('inventory.db')
+    conn = sqlite3.connect(str(config.DATA_DIR / 'inventory.db'))
     cursor = conn.cursor()
     
     # Generate the placeholders for the elements in ignoredSet
@@ -118,7 +119,7 @@ def getInventoryValueOverTime(startDate, endDate):
 
 def getNetEarningsOverTime(startDate, endDate):
     # Connect to the SQLite database
-    conn = sqlite3.connect('inventory.db')
+    conn = sqlite3.connect(str(config.DATA_DIR / 'inventory.db'))
     cursor = conn.cursor()
     
     # Retrieve data from the transactions table excluding specific values
@@ -136,7 +137,7 @@ def getNetEarningsOverTime(startDate, endDate):
     rows = cursor.fetchall()
     conn.close()
 
-    conn = sqlite3.connect('inventory.db')
+    conn = sqlite3.connect(str(config.DATA_DIR / 'inventory.db'))
     cursor = conn.cursor()
     placeholders = ', '.join(['?' for _ in ignoredSet])
         
@@ -213,4 +214,4 @@ timestamps, netEarningsOverTime = getNetEarningsOverTime(startDate, endDate)
 t = time.time()
 fig = getAccountValueFig(timestamps, inventoryValueOverTime, netEarningsOverTime)
 #print(time.time() - t)
-fig.savefig("accValue.png", transparent=True)
+fig.savefig(config.DATA_DIR / "accValue.png", transparent=True)
