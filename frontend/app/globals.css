@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+@layer base {
+  :root {
+    font-family: "Space Grotesk", "Inter", -apple-system, BlinkMacSystemFont,
+      "Segoe UI", sans-serif;
+  }
+
+  body {
+    @apply min-h-screen bg-[#050914] text-[#e8f0fb] antialiased;
+    background-image:
+      radial-gradient(90% 90% at 15% 20%, rgba(62, 131, 255, 0.12), rgba(5, 9, 20, 0)),
+      radial-gradient(80% 80% at 80% 0%, rgba(120, 255, 214, 0.12), rgba(5, 9, 20, 0));
+  }
+}

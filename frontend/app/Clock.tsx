@@ -40,9 +40,11 @@ export default function Clock() {
   }, []);
 
   return (
-    <div className="clock-section">
-      <div>GMT: {currentTime}</div>
-      <div>Time until midnight GMT: {timeUntilMidnight}</div>
+    <div className="flex flex-col rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+      <div className="text-sm font-semibold">{currentTime || "--:--:--"} GMT</div>
+      <div className="text-[12px] text-[#9aa9c1]">
+        Reset in {timeUntilMidnight || "--:--:--"} (GMT)
+      </div>
     </div>
   );
 }

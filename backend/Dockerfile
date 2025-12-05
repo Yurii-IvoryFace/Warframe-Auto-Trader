@@ -16,4 +16,4 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["python3", "-m" , "uvicorn", "inventoryApi:app", "--host", "0.0.0.0", "--reload"]
+CMD ["python3", "-m" , "uvicorn", "starter:app", "--host", "0.0.0.0", "--reload"]
